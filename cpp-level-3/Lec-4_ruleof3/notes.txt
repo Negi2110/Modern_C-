@@ -1,0 +1,375 @@
+**Like a child first:**
+
+> Imagine you have a **toy box** with toys inside.
+
+```
+TRIVIAL - the toy IS the thing:
+You have a LEGO brick in your hand.
+I copy it -> I get my OWN lego brick.
+Simple. Done. Nothing can go wrong.
+
+NON-TRIVIAL - the toy is a KEY to something bigger:
+You have a KEY to a toy box full of toys.
+I copy your key -> now WE BOTH have keys to the SAME toy box.
+
+Problem:
+You go home and LOCK the toy box forever (destructor).
+I try to lock it too -> "THIS BOX IS ALREADY LOCKED!" -> CRASH!
+```
+
+**Now with code:**
+
+```cpp
+// TRIVIAL - the value IS the thing (like holding the lego brick):
+int x = 5;
+int y = x;   // y gets its OWN 5
+             // x and y are completely independent
+             // change y -> x unaffected
+             // both die -> nothing to clean up
+             // SAFE, simple, no problems
+
+// NON-TRIVIAL - the value is a KEY (like holding key to toy box):
+int* px = new int[10];  // px = KEY
+                        // new int[10] = the TOY BOX on heap
+
+int* py = px;           // py gets COPY OF KEY
+                        // SAME toy box, two keys!
+
+// py[0] = 999;         // you changed toy box through py
+// px[0] is ALSO 999!   // because same box!
+
+delete[] px;            // you locked and DESTROYED the toy box
+delete[] py;            // py tries to destroy SAME box -> CRASH!
+//                         double free!
+```
+
+**The three trivial types and their "copies":**
+
+```cpp
+// INT - holds the actual number:
+int a = 42;     // [42] on stack
+int b = a;      // [42] on stack  <- own copy, independent
+                // two separate boxes each holding 42
+
+// FLOAT - holds the actual decimal:
+float x = 3.14f; // [3.14] on stack
+float y = x;     // [3.14] on stack <- own copy, independent
+
+// CHAR - holds the actual character:
+char c1 = 'A';  // [A] on stack
+char c2 = c1;   // [A] on stack <- own copy, independent
+
+// ALL TRIVIAL because:
+// the ENTIRE VALUE lives in the variable itself
+// copying = duplicate the bytes = done
+// no hidden connection between copies
+// both can die independently, no cleanup needed
+```
+
+**Non-trivial real examples:**
+
+```cpp
+// RAW POINTER - holds an ADDRESS (key), not the actual data:
+int* p1 = new int[10];
+// stack: [address=100]  heap: [0][1][4][9]...[81]
+//             ^key           ^actual toy box
+
+int* p2 = p1;
+// stack: [address=100]  [address=100]
+//                  \       /
+//                   same heap!
+// p2 is NOT independent - it's linked to p1's data
+
+// std::string - looks simple but has heap inside:
+std::string s1 = "hello world this is a long string";
+// stack: [ptr+size+cap]  heap: ['h','e','l','l','o'...]
+//             ^key              ^actual characters
+
+// std::vector - same thing:
+std::vector<int> v = {1,2,3,4,5};
+// stack: [ptr+size+cap]  heap: [1][2][3][4][5]
+//             ^key              ^actual elements
+```
+
+**One picture to remember forever:**
+
+```
+TRIVIAL:
+variable = [THE ACTUAL THING]
+copy     = [THE ACTUAL THING]  <- independent, safe
+
+NON-TRIVIAL:
+variable = [KEY] ──────────────> [THE ACTUAL THING on heap]
+copy     = [KEY] ──────────────>      same thing!
+                 ^two keys, one box = DANGER^
+```
+
+> **Child version**: Trivial = you ARE the toy. Non-trivial = you have a KEY to the toy. Copying a key doesn't copy the toy — it just makes two people fight over the same one.
+// ============================================================
+// RULE OF THREE - COMPLETE PICTURE - INTERVIEW NOTES
+// ============================================================
+
+// ============================================================
+// SECTION 1: YOUR COMMENT - CLARIFYING THE RULE
+// ============================================================
+
+// YOUR COMMENT:
+// "shallow copy - if you only have trivial data type like int
+//  and float also like vector"
+//
+// SMALL CORRECTION on std::vector:
+// std::vector is NOT trivial for shallow copy purposes
+// BUT you don't need Rule of Three for it because:
+// std::vector ALREADY implements Rule of Three internally
+// it has its OWN deep copy constructor and assignment operator
+// so when compiler does shallow copy of YOUR class that HAS a vector:
+// it calls vector's copy constructor -> which does deep copy of vector's heap
+// vector MANAGES ITSELF
+//
+// RULE OF THREE triggers when:
+// -> your class has RAW POINTER (int*, char*, float* etc.)
+//    = you are MANUALLY managing heap
+//    = compiler's free versions are wrong
+//    = you must write all three yourself
+//
+// RULE OF THREE does NOT trigger when:
+// -> class has only int, float, bool, char (trivial - no heap)
+// -> class has std::vector, std::string, std::array (they manage themselves)
+// -> class has std::unique_ptr (already handles deep ownership)
+//
+// SUMMARY:
+// raw pointer member -> write Rule of Three
+// everything else    -> compiler's free versions are fine
+
+// ============================================================
+// SECTION 2: THE COMPLETE FILE STRUCTURE - WHAT GOES WHERE
+// ============================================================
+
+// Array.hpp (INTERFACE - what exists):
+// ------------------------------------
+// #pragma once
+// class Array {
+// public:
+//     Array();                           // 1. Constructor
+//     ~Array();                          // 2. Destructor
+//     Array(const Array& rhs);           // 3. Copy Constructor
+//     Array& operator=(const Array& rhs);// 4. Copy Assignment
+//     void PrintingData();
+//     void SetData(int index, int value);
+// private:
+//     int* data;   // RAW POINTER -> triggers Rule of Three!
+// };
+
+// Array.cpp (IMPLEMENTATION - how it works):
+// ------------------------------------------
+// All 4 functions implemented here (see below)
+
+// main.cpp (USER - uses the class):
+// ----------------------------------
+// Only sees Array.hpp
+// Doesn't know HOW copy works, just that it works correctly
+
+// ============================================================
+// SECTION 3: EACH FUNCTION - WHY IT EXISTS
+// ============================================================
+
+// 1. CONSTRUCTOR - Array()
+// -------------------------
+// Array::Array() {
+//     data = new int[10];        // allocates heap (the "garage")
+//     for(int i=0;i<10;i++)
+//         data[i] = i*i;        // initializes values
+// }
+// WHY NEEDED: must allocate heap for each object
+// WITHOUT IT: data = garbage pointer -> undefined behavior
+
+// 2. DESTRUCTOR - ~Array()
+// -------------------------
+// Array::~Array() {
+//     delete[] data;             // frees heap when object dies
+// }
+// WHY NEEDED: free version does nothing -> memory leak
+// WITHOUT IT: every Array object leaks 40 bytes on heap
+
+// 3. COPY CONSTRUCTOR - Array(const Array& rhs)
+// ----------------------------------------------
+// Array::Array(const Array& rhs) {
+//     data = new int[10];        // NEW garage for new object
+//     for(int i=0;i<10;i++)
+//         data[i] = rhs.data[i]; // copy VALUES not pointer
+// }
+// WHY NEEDED: free version copies pointer -> double free
+// CALLED WHEN: Array a2 = a1;  or  Array a2(a1);
+//              object being BORN from another object
+
+// 4. COPY ASSIGNMENT - operator=
+// --------------------------------
+// Array& Array::operator=(const Array& rhs) {
+//     if (&rhs == this) return *this;  // self-assign check
+//     delete[] data;                   // free OLD garage
+//     data = new int[10];              // NEW garage
+//     for(int i=0;i<10;i++)
+//         data[i] = rhs.data[i];       // copy VALUES
+//     return *this;
+// }
+// WHY NEEDED: free version copies pointer -> double free + leak
+// CALLED WHEN: a2 = a1;  (a2 already existed before this line)
+
+// ============================================================
+// SECTION 4: YOUR main.cpp TRACE - STEP BY STEP
+// ============================================================
+
+// Array myArray;
+// -> constructor called
+// -> "constructor" printed
+// -> myArray.data -> heap[0,1,4,9,16,25,36,49,64,81]
+//
+// myArray.SetData(0, 10000000);
+// myArray.SetData(1, 77);
+// myArray.SetData(2, 99999);
+// -> myArray.data -> heap[10000000, 77, 99999, 9, 16, 25, 36, 49, 64, 81]
+//
+// Array myArray2;
+// -> constructor called (NOT copy constructor - no argument!)
+// -> "constructor" printed
+// -> myArray2.data -> heap[0,1,4,9,16,25,36,49,64,81] (OWN heap block)
+//
+// myArray2 = myArray;
+// -> copy ASSIGNMENT called (myArray2 already existed!)
+// -> "copy assignment operator" printed
+// -> &rhs == this? NO (different objects) -> proceed
+// -> delete[] myArray2.data  (frees myArray2's original [0,1,4...81])
+// -> data = new int[10]      (fresh heap block for myArray2)
+// -> copies myArray's values into myArray2's new block
+// -> myArray2.data -> heap[10000000, 77, 99999, 9, 16, 25, 36, 49, 64, 81]
+//
+// myArray.PrintingData();    -> prints myArray's values
+// myArray2.PrintingData();   -> prints myArray2's values (same values, different memory)
+//
+// return 0:
+// -> myArray2 destroyed FIRST (LIFO): delete[] myArray2.data -> safe
+// -> myArray  destroyed SECOND:       delete[] myArray.data  -> safe
+// -> TWO separate heap blocks freed -> NO double free!
+
+// ============================================================
+// SECTION 5: WHAT WOULD HAPPEN WITHOUT RULE OF THREE
+// ============================================================
+
+// WITHOUT custom versions (compiler's free code):
+//
+// Array myArray;             // myArray.data = address 100
+// Array myArray2;            // myArray2.data = address 200
+// myArray2 = myArray;        // FREE operator=: myArray2.data = 100
+//                            // myArray2.data now ALSO = address 100
+//                            // address 200 LEAKED (no pointer to it!)
+//
+// HEAP STATE:
+// address 100: [10000000, 77, 99999...] <- both point here
+// address 200: [0,1,4,9...]             <- LEAKED, no way to free!
+//
+// return 0:
+// myArray2 destroyed: delete[] (address 100) -> freed
+// myArray  destroyed: delete[] (address 100) -> DOUBLE FREE -> CRASH!
+
+// ============================================================
+// SECTION 6: INTERVIEW - RULE OF THREE vs RULE OF FIVE
+// ============================================================
+
+// RULE OF THREE (C++03):
+// if you write any of:
+// 1. Destructor
+// 2. Copy Constructor
+// 3. Copy Assignment Operator
+// -> write ALL THREE
+// handles copying and cleanup correctly
+//
+// RULE OF FIVE (C++11 - adds move semantics):
+// if you write any of the three above, also write:
+// 4. Move Constructor         Array(Array&& rhs)
+// 5. Move Assignment Operator Array& operator=(Array&& rhs)
+//
+// Move versions STEAL the heap pointer instead of copying:
+// Array(Array&& rhs) {
+//     data = rhs.data;    // steal pointer (no new allocation!)
+//     rhs.data = nullptr; // source gutted (owns nothing now)
+// }
+// -> O(1) instead of O(n) for large arrays
+//
+// RULE OF ZERO (modern C++ best practice):
+// don't manage raw resources at all!
+// use std::vector, std::unique_ptr etc.
+// -> they implement Rule of Five internally
+// -> YOUR class needs ZERO of the five special functions
+// -> compiler's free versions work correctly
+// -> cleaner, safer, less code
+
+// ============================================================
+// SECTION 7: INTERVIEW QUESTIONS
+// ============================================================
+
+// Q1: What is the Rule of Three?
+//     -> If a class needs a custom destructor, copy constructor,
+//        OR copy assignment operator, it almost certainly needs
+//        all three. Typically triggered by raw pointer members
+//        (manual heap management).
+
+// Q2: Does the Rule of Three apply to classes with std::vector?
+//     -> NO. std::vector already implements Rule of Three internally.
+//        Compiler's free copy of YOUR class calls vector's copy
+//        constructor which deep copies correctly.
+//        Rule of Three only needed for RAW pointer members.
+
+// Q3: What is the difference between Rule of Three and Rule of Five?
+//     -> Rule of Three (C++03): destructor + copy ctor + copy assign
+//        Rule of Five  (C++11): adds move ctor + move assign
+//        Move versions enable O(1) resource transfer vs O(n) copy.
+
+// Q4: What is the Rule of Zero?
+//     -> Modern best practice: use RAII types (vector, unique_ptr)
+//        so YOUR class needs ZERO special functions.
+//        Compiler's free versions work perfectly when members
+//        manage themselves.
+
+// Q5: Why is self-assignment check needed in operator=?
+//     -> myArray = myArray;
+//        Without check: delete[] data (deletes own data!)
+//        then copies from deleted memory -> undefined behavior.
+//        Check: if(&rhs == this) return *this; catches this case.
+
+// Q6: Why does copy constructor not need to free existing data?
+//     -> Object is being CREATED for first time.
+//        data pointer is uninitialized (no existing heap to free).
+//        Just allocate new heap and copy values.
+//        Copy assignment MUST free because object already HAS heap.
+
+// Q7: How does header/source split work for classes?
+//     -> .hpp: class definition + declarations (what exists)
+//        .cpp: implementations (how they work)
+//        main.cpp includes .hpp only (sees interface, not implementation)
+//        Linker connects main.o with Array.o to build executable.
+
+// Q8: What is the output order of constructor/destructor here?
+//     -> constructor      (myArray born)
+//        constructor      (myArray2 born)
+//        copy assignment  (myArray2 = myArray)
+//        [printData x2]
+//        ~Array myArray2  (destroyed first - LIFO)
+//        ~Array myArray   (destroyed second)
+```
+
+**Rule of Three decision tree - one glance:**
+
+```
+Does your class have a RAW POINTER member (int*, char*)?
+│
+├── NO (has int, float, vector, string, unique_ptr)
+│     └── Rule of Zero - compiler's free versions work fine
+│
+└── YES (raw pointer = manual heap management)
+      └── Rule of Three - write ALL THREE:
+          ├── ~Destructor        (free the heap)
+          ├── Copy Constructor   (new heap + copy values)
+          └── operator=          (free old + new heap + copy values)
+```
+
+> **The one-liner**: Rule of Three exists because C++ cannot know whether your pointer is "just a number" or "a key to a garage you own." You tell it by writing the three functions — *"yes, this pointer owns heap memory, handle it carefully."*

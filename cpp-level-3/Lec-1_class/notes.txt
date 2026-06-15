@@ -1,0 +1,315 @@
+```cpp
+// ============================================================
+// CLASSES, CONSTRUCTOR/DESTRUCTOR, OBJECT LIFETIME - INTERVIEW NOTES
+// ============================================================
+
+// ============================================================
+// SECTION 1: WHAT IS A CLASS?
+// ============================================================
+
+// class = User Defined Type (UDT)
+// bundles DATA (member variables) + BEHAVIOR (member functions) together
+//
+// int, char, float  = PRIMITIVE types (built into language)
+// Student           = USER DEFINED type (you created it)
+//
+// Student aman;
+//    ^      ^
+//  TYPE   OBJECT/INSTANCE (a specific "copy" of the blueprint)
+//
+// ANALOGY:
+// class Student  = BLUEPRINT (architectural plan for a house)
+// Student aman   = ACTUAL HOUSE built from that blueprint
+// Student sue    = ANOTHER house built from SAME blueprint
+//                  (different house, same design)
+
+// ============================================================
+// SECTION 2: ACCESS SPECIFIERS - public/private/protected
+// ============================================================
+
+// class Student
+// {
+//     // by default everything here is PRIVATE
+// public:
+//     // accessible from OUTSIDE the class (main(), other classes)
+// private:
+//     // accessible ONLY from INSIDE the class (member functions)
+// protected:
+//     // like private, but ALSO accessible by DERIVED classes
+// };
+//
+// INTERVIEW: What is the default access specifier for class?
+//   -> private (for struct, default is public)
+//      class Student { int x; };  // x is private
+//      struct Student { int x; }; // x is public
+//      THIS is the ONLY difference between class and struct in C++!
+
+// ============================================================
+// SECTION 3: CONSTRUCTOR - WHAT AND WHY
+// ============================================================
+
+// Student::Student()
+// {
+//     std::cout << "Constructor" << std::endl;
+// }
+//
+// CONSTRUCTOR:
+// -> SPECIAL function, SAME NAME as class
+// -> NO return type (not even void!)
+// -> called AUTOMATICALLY when object is CREATED
+// -> used to INITIALIZE the object's data members
+//
+// Student aman;   // <- constructor called HERE, automatically
+//                 // prints "Constructor"
+//                 // aman.m_name is currently EMPTY string (default)
+//
+// WHY automatic?
+// -> guarantees object starts in a VALID state
+// -> you never "forget" to initialize (unlike raw structs in C)
+// -> foundation of RAII (resource setup happens here)
+
+// ============================================================
+// SECTION 4: DESTRUCTOR - WHAT AND WHY
+// ============================================================
+
+// Student::~Student()
+// {
+//     std::cout << "Destructor: " << m_name << std::endl;
+// }
+//
+// DESTRUCTOR:
+// -> SPECIAL function, ~ + class name
+// -> NO return type, NO parameters, cannot be overloaded
+// -> called AUTOMATICALLY when object is DESTROYED (scope ends)
+// -> used to CLEAN UP (free heap memory, close files, etc.)
+//
+// {
+//     Student aman;   // constructor called
+// }                   // <- destructor called HERE automatically
+//                     // prints "Destructor: Aman negi"
+//                     // (this is RAII in action!)
+//
+// THIS IS WHY unique_ptr/shared_ptr/vector/string ALL WORK:
+// they have destructors that automatically free their heap memory
+// when they go out of scope - SAME mechanism as your Student class!
+
+// ============================================================
+// SECTION 5: m_ PREFIX CONVENTION
+// ============================================================
+
+// std::string m_name;
+//             ^
+//             'm_' = "member" prefix convention
+//
+// WHY use this convention?
+// -> distinguishes MEMBER variables from LOCAL variables/parameters
+//
+// void setName(std::string name) {
+//     m_name = name;   // clear: m_name is member, name is parameter
+// }
+//
+// without m_ prefix, ambiguous:
+// void setName(std::string name) {
+//     name = name;   // which 'name' is which?? confusing!
+// }
+//
+// common conventions: m_name, _name, name_ (all mean "member variable")
+// Qt convention is m_ prefix - you'll see this everywhere in ISSST code
+
+// ============================================================
+// SECTION 6: . (dot) OPERATOR - ACCESSING MEMBERS
+// ============================================================
+
+// Student aman;
+// aman.m_name = "Aman negi";    // access member variable
+// aman.printName();             // call member function
+//
+// . (dot) = "access member of this OBJECT"
+// works on: actual objects (stack-allocated)
+//
+// Student* p = new Student();
+// p->m_name = "Aman";     // -> (arrow) for POINTERS to objects
+// (*p).m_name = "Aman";   // same thing, dot on dereferenced pointer
+// -> is literally syntactic sugar for (*p).
+
+// ============================================================
+// SECTION 7: YOUR FINAL QUESTION - OBJECT DESTRUCTION ORDER
+// ============================================================
+
+// Student aman;   // created FIRST  -> pushed on stack FIRST
+// aman.m_name = "Aman negi";
+// aman.printName();
+//
+// Student sue;    // created SECOND -> pushed on stack SECOND
+// sue.m_name = "sagar negi";
+// sue.printName();
+//
+// return 0;       // main() ends -> BOTH objects destroyed
+//
+// ORDER OF DESTRUCTION: REVERSE of creation order (LIFO - stack!)
+// -> sue destroyed FIRST (created last, destroyed first)
+// -> aman destroyed SECOND (created first, destroyed last)
+//
+// THIS IS WHY: "last in, first out" - exactly like the call stack!
+//
+// STACK VISUAL:
+//
+// CREATION (pushing):          DESTRUCTION (popping):
+// |  sue   | <- pushed 2nd     |  sue destroyed first | <- popped 1st
+// |  aman  | <- pushed 1st     |  aman destroyed 2nd  | <- popped 2nd
+//
+// OUTPUT ORDER:
+// Constructor              <- aman created
+// name is: Aman negi       <- aman.printName()
+// Constructor              <- sue created
+// name is: sagar negi      <- sue.printName()
+// Destructor: sagar negi   <- sue destroyed FIRST (reverse order!)
+// Destructor: Aman negi    <- aman destroyed SECOND
+
+// ============================================================
+// SECTION 8: YOUR COMMENT - "CAN DIFFER WITH NESTED PARENTHESES"
+// ============================================================
+
+// CORRECT! Scope (nested {}) changes destruction timing:
+//
+// int main() {
+//     Student aman;        // created 1st
+//     {
+//         Student sue;     // created 2nd, in INNER scope
+//     }                     // <- sue destroyed HERE (inner scope ends)
+//     // aman still alive here!
+// }                         // <- aman destroyed HERE (outer scope ends)
+//
+// OUTPUT:
+// Constructor          <- aman
+// Constructor          <- sue
+// Destructor: sue      <- sue destroyed when inner {} ends
+// Destructor: aman     <- aman destroyed when outer {} ends
+//
+// RULE: objects destroyed in REVERSE order, but ONLY WITHIN their scope
+// nested scope = object dies EARLIER (when its { } closes)
+// not necessarily at the very end of main()
+
+// ============================================================
+// SECTION 9: STACK vs HEAP OBJECT LIFETIME - YOUR COMMENTED CODE
+// ============================================================
+
+// STACK object (automatic):
+// {
+//     Student aman;
+// }   // destructor called AUTOMATICALLY here
+//
+// HEAP object (manual):
+// Student* aman = new Student();  // constructor called
+// delete aman;                    // destructor called MANUALLY
+// aman = nullptr;                 // good practice
+//
+// if you FORGET delete:
+// -> destructor NEVER called
+// -> "Destructor: ..." never printed
+// -> memory leak (and resource leak if destructor does cleanup!)
+//
+// THIS is exactly why smart pointers exist:
+// std::unique_ptr<Student> aman = std::make_unique<Student>();
+// // destructor called automatically when aman goes out of scope
+// // even though Student is on heap!
+
+// ============================================================
+// SECTION 10: COMPLETE FILE STRUCTURE RECAP
+// ============================================================
+
+// Lec-1_student.hpp (INTERFACE):
+// #pragma once
+// #include <string>
+// class Student {
+// public:
+//     Student();              // constructor declaration
+//     ~Student();             // destructor declaration
+//     void printName();       // method declaration
+// public:
+//     std::string m_name;     // member variable
+// };
+//
+// Lec-1_student.cpp (IMPLEMENTATION):
+// #include "Lec-1_student.hpp"
+// Student::Student() { ... }       // :: = scope resolution operator
+// Student::~Student() { ... }      // "this is Student's destructor"
+// void Student::printName() { ... }
+//
+// :: (scope resolution operator)
+// -> says "this function/variable BELONGS to Student class"
+// -> without it, compiler doesn't know which class this constructor is for
+// -> Student::Student() = "the Student class's constructor"
+
+// ============================================================
+// SECTION 11: INTERVIEW QUESTIONS
+// ============================================================
+
+// Q1: What is a constructor and when is it called?
+//     -> Special function, same name as class, no return type.
+//        Called automatically when object is created.
+//        Initializes the object's data members.
+
+// Q2: What is a destructor and when is it called?
+//     -> Special function, ~ClassName, no return type/params.
+//        Called automatically when object goes out of scope (stack)
+//        or when delete is called (heap).
+//        Used for cleanup.
+
+// Q3: What is the order of destruction for stack objects?
+//     -> Reverse order of construction (LIFO - last in, first out).
+//        Last object created is first object destroyed.
+//        Same principle as the call stack itself.
+
+// Q4: What is the default access specifier in class vs struct?
+//     -> class: private by default
+//        struct: public by default
+//        That's the ONLY difference in C++ (both can have methods, etc).
+
+// Q5: What is the :: (scope resolution) operator used for?
+//     -> Defines which class a function belongs to when implementing
+//        outside the class body.
+//        Student::printName() means "Student class's printName".
+
+// Q6: Can a constructor have a return type?
+//     -> NO. Not even void. This is a compiler error.
+//        Constructors initialize objects, they don't "return" anything.
+
+// Q7: Can you have multiple destructors (overloaded)?
+//     -> NO. Destructor takes no parameters, cannot be overloaded.
+//        Only ONE destructor per class.
+//        But constructors CAN be overloaded (multiple versions).
+
+// Q8: What happens if you forget delete on a heap object?
+//     -> Destructor never called -> memory leak.
+//        If destructor does important cleanup (close file, free resource)
+//        that cleanup never happens either.
+//        Smart pointers solve this via RAII.
+
+// Q9: What is the m_ prefix convention?
+//     -> Naming convention marking variable as a class MEMBER.
+//        Distinguishes from local variables/parameters with same name.
+//        Widely used in Qt and most C++ codebases.
+```
+
+**The destruction order rule - drawn out:**
+
+```cpp
+int main() {
+    Student aman;   // 1st created
+    Student sue;    // 2nd created
+}                    // both destroyed: sue FIRST, then aman
+                     // REVERSE order = LIFO (stack discipline)
+```
+
+**Nested scope changes timing:**
+```cpp
+int main() {
+    Student aman;        // lives entire main()
+    {
+        Student sue;     // lives only in inner { }
+    }                     // sue destroyed HERE
+}                         // aman destroyed HERE
+```
+
+> Constructor/Destructor pair = **exactly the same RAII mechanism** you saw with `unique_ptr`. Every class you write that manages a resource (file handle, network socket, heap memory) follows this same pattern: acquire in constructor, release in destructor.

@@ -1,0 +1,253 @@
+```cpp
+// ============================================================
+// CONSTRUCTOR OVERLOADING, ENCAPSULATION, DEFAULT CTOR - NOTES
+// ============================================================
+
+// ============================================================
+// SECTION 1: CONSTRUCTOR OVERLOADING
+// ============================================================
+
+// Just like regular functions, constructors can be OVERLOADED
+// same name (= class name), different parameters
+//
+// Student();                  // default constructor (no args)
+// Student(std::string name);  // parameterized constructor
+//
+// compiler picks the right one based on HOW you create the object:
+//
+// Student aman;            // calls Student()           -> "no name"
+// Student aman("aman");    // calls Student(std::string) -> "aman"
+// Student aman = "aman";   // ALSO calls Student(std::string) (implicit conversion!)
+//
+// SAME OVERLOAD RESOLUTION RULES as regular functions:
+// compiler matches argument types to parameter types
+
+// ============================================================
+// SECTION 2: YOUR CODE TRACE - Student aman("aman")
+// ============================================================
+
+// Student aman("aman");
+// -> matches Student(std::string name)  (parameterized ctor)
+// -> NOT Student()  (default ctor) - because we passed an argument
+//
+// INSIDE Student(std::string name):
+// m_name = name;     // m_name (member) = "aman" (parameter)
+// cout << "constructor"
+// cout << "m_name: aman"
+//
+// aman.printName();
+// -> "name is: aman"
+//
+// main() ends:
+// -> aman destroyed
+// -> destructor runs
+// -> "Distructor: aman"
+
+// FULL OUTPUT:
+// constructor
+// m_name: aman
+// name is: aman
+// Distructor: aman
+
+// ============================================================
+// SECTION 3: WHY private m_name NOW? (changed from Lec-1)
+// ============================================================
+
+// Lec-1: std::string m_name; was in public section
+//        main.cpp could do: aman.m_name = "Aman negi";  // direct access
+//
+// Lec-2: std::string m_name; is in private section
+//        aman.m_name = "Aman negi";  // COMPILER ERROR now!
+//                                     // "m_name is private within this context"
+//
+// THIS IS ENCAPSULATION / INFORMATION HIDING
+//
+// WHY hide m_name?
+// -> outside code CANNOT directly mess with internal state
+// -> class CONTROLS how its data is set (through constructor, setters)
+// -> if later you need validation:
+//    Student(std::string name) {
+//        if (name.empty()) name = "Unknown";  // validation!
+//        m_name = name;
+//    }
+//    -> direct access (aman.m_name = "") would BYPASS this check
+//    -> constructor/setter is the GATEKEEPER
+//
+// THIS IS WHY constructor became the way to set m_name
+// instead of: aman.m_name = "aman";  (Lec-1 style, no validation possible)
+// now:        Student aman("aman");   (goes through constructor, validated)
+
+// ============================================================
+// SECTION 4: "WE GET A DEFAULT CONSTRUCTOR AND DEFAULT DESTRUCTOR"
+// ============================================================
+
+// Your comment in main.cpp is PARTIALLY misleading - let's clarify:
+//
+// IF you write ZERO constructors:
+// class Foo { int x; };
+// Foo f;  // compiler auto-generates a DEFAULT constructor
+//         // (does nothing, doesn't initialize x - garbage value!)
+//
+// IF you write ANY constructor (like your Student(std::string)):
+// -> compiler-generated default constructor is SUPPRESSED
+// -> BUT you ALSO wrote Student() explicitly in this code!
+// -> so Student() IS available, but YOU wrote it (not auto-generated)
+//
+// If you had ONLY written Student(std::string) and NOT Student():
+// Student aman;  // COMPILER ERROR!
+//                // "no matching constructor, Student() does not exist"
+//                // because writing ANY constructor removes the
+//                // AUTO-GENERATED default constructor
+//
+// DESTRUCTOR:
+// if you don't write ~Student(), compiler generates a default one
+// (does nothing special, just destroys members in reverse order)
+// you WROTE ~Student() here, so yours is used (prints message)
+
+// ============================================================
+// SECTION 5: RULE OF THUMB - WHEN DEFAULT CTOR DISAPPEARS
+// ============================================================
+
+// class Student {
+// public:
+//     Student(std::string name);  // ONLY this constructor
+// };
+//
+// Student aman;          // ERROR - no Student() exists anymore!
+// Student aman("aman");  // OK - matches Student(std::string)
+//
+// TO FIX (if you want both):
+// class Student {
+// public:
+//     Student();                  // must explicitly add this back
+//     Student(std::string name);
+// };
+//
+// THIS is exactly what your Lec-2 code does - BOTH constructors
+// explicitly written, so BOTH Student aman; and Student aman("aman");
+// would work
+
+// ============================================================
+// SECTION 6: MEMBER INITIALIZER LIST - BETTER WAY (preview)
+// ============================================================
+
+// Your code:
+// Student::Student(std::string name)
+// {
+//     m_name = name;   // ASSIGNMENT (member already default-constructed,
+//                       // then assigned new value - 2 steps)
+// }
+//
+// BETTER (member initializer list):
+// Student::Student(std::string name) : m_name(name)
+// {
+//     // m_name DIRECTLY constructed with "name" value (1 step)
+// }
+//
+// for std::string the difference is minor, but for complex objects:
+// -> initializer list = DIRECT construction (efficient)
+// -> assignment in body = default construct THEN assign (wasteful)
+//
+// INTERVIEW: What is a member initializer list?
+//   -> Syntax: Constructor(args) : member1(val1), member2(val2) { }
+//      Initializes members DIRECTLY with values, before constructor
+//      body runs. More efficient than assignment in body.
+//      REQUIRED for: const members, reference members, members
+//      without default constructor.
+
+// ============================================================
+// SECTION 7: PASS BY VALUE STRING PARAMETER - PERFORMANCE NOTE
+// ============================================================
+
+// Student(std::string name);
+//          ^^^^^^^^^^^
+//          pass by VALUE - COPY made
+//
+// Student aman("aman");
+// -> "aman" (const char*) -> converted to std::string (1 allocation)
+// -> that std::string COPIED into 'name' parameter (2nd allocation potentially)
+// -> then m_name = name -> COPIED again into m_name (3rd!)
+//
+// BETTER (const reference, avoids extra copies):
+// Student(const std::string& name) : m_name(name) { }
+// -> no copy for parameter (just reference)
+// -> one copy into m_name (initializer list)
+//
+// EVEN BETTER (move semantics, C++11):
+// Student(std::string name) : m_name(std::move(name)) { }
+// -> name is a local copy anyway (pass by value)
+// -> std::move steals its buffer into m_name (no extra copy!)
+// -> this is the MODERN recommended pattern for setter-style constructors
+
+// ============================================================
+// SECTION 8: INTERVIEW QUESTIONS
+// ============================================================
+
+// Q1: What is constructor overloading?
+//     -> Multiple constructors with same name (class name) but
+//        different parameter lists. Compiler picks based on
+//        arguments provided at object creation.
+
+// Q2: What happens to the default constructor if you write
+//     a parameterized constructor?
+//     -> The compiler-generated default constructor is SUPPRESSED.
+//        Student aman; // ERROR if only Student(string) exists.
+//        Must explicitly write Student() if both are needed.
+
+// Q3: What is encapsulation?
+//     -> Hiding internal data (private) and exposing controlled
+//        access through public methods/constructors.
+//        Prevents external code from putting object in invalid state.
+
+// Q4: Why make m_name private instead of public?
+//     -> Forces all changes through constructor/methods.
+//        Allows validation, prevents accidental misuse.
+//        Class controls its own invariants.
+
+// Q5: What is a member initializer list?
+//     -> Constructor(args) : member(value) { }
+//        Directly initializes members before constructor body runs.
+//        More efficient than assignment inside body.
+//        Required for const/reference members.
+
+// Q6: Student aman = "aman"; - does this work? Why?
+//     -> YES (if constructor not marked 'explicit').
+//        "aman" (const char*) implicitly converts to std::string,
+//        which matches Student(std::string) constructor.
+//        This implicit conversion can be surprising/dangerous -
+//        mark constructor 'explicit' to prevent it if undesired.
+
+// Q7: What is the 'explicit' keyword?
+//     -> Prevents implicit conversions in single-argument constructors.
+//        explicit Student(std::string name);
+//        Student aman = "aman";   // ERROR now
+//        Student aman("aman");    // OK (explicit construction)
+//        Student aman = Student("aman"); // OK
+
+// Q8: In what order are member variables initialized?
+//     -> In the ORDER THEY ARE DECLARED in the class (not the
+//        order in the initializer list!). Best practice: write
+//        initializer list in same order as declaration to avoid
+//        confusion/warnings.
+```
+
+**The constructor disappearing act - most tested concept here:**
+
+```cpp
+// Write ZERO constructors:
+class A { };
+A a;  // OK - compiler generates default ctor for you
+
+// Write ANY constructor (even just one with args):
+class B { B(std::string s); };
+B b;        // ERROR - default ctor GONE
+B b("hi");  // OK
+
+// Want both? Write BOTH explicitly:
+class C {
+    C();              // must add this back yourself
+    C(std::string s);
+};
+```
+
+> **Lec-1 vs Lec-2 is the real lesson here**: moving `m_name` from `public` to `private` and adding a constructor isn't just style — it's the shift from "anyone can corrupt my object" to "the only way to set my data is through code I control." That's encapsulation in one sentence.
