@@ -1,0 +1,213 @@
+```cpp
+// ============================================================
+// struct vs class - THE ONLY DIFFERENCE - INTERVIEW NOTES
+// ============================================================
+
+// ============================================================
+// SECTION 1: YOUR COMMENT - "struct is C, contains by default all public"
+// ============================================================
+
+// 100% CORRECT!
+//
+// struct Vector3f {    // everything PUBLIC by default
+//     float x, y, z;  // public (anyone can access)
+// };
+//
+// class Vector3f {     // everything PRIVATE by default
+//     float x, y, z;  // private (only class itself can access)
+// };
+//
+// THAT IS THE ONLY DIFFERENCE IN C++:
+// struct -> default PUBLIC
+// class  -> default PRIVATE
+//
+// EVERYTHING ELSE IS IDENTICAL:
+// struct CAN have:     class CAN have:
+// -> constructors      -> constructors
+// -> destructors       -> destructors
+// -> methods           -> methods
+// -> inheritance       -> inheritance
+// -> access specifiers -> access specifiers
+// -> operator overload -> operator overload
+//
+// struct Vector3f {          class Vector3f {
+// public:                    public:           <- same!
+//     Vector3f();                Vector3f();
+//     float x, y, z;             float x, y, z;
+// };                         };
+
+// ============================================================
+// SECTION 2: WHY YOUR CODE WORKS WITH struct
+// ============================================================
+
+// struct Vector3f {
+//     Vector3f();       // public by default (no access specifier needed)
+//     float x, y, z;   // public by default
+// };
+//
+// main.cpp:
+// myVector1.x = 32;    // WORKS because x is PUBLIC (struct default)
+//
+// if you used class WITHOUT public:
+// class Vector3f {
+//     Vector3f();       // PRIVATE by default
+//     float x, y, z;   // PRIVATE by default
+// };
+// myVector1.x = 32;    // COMPILER ERROR - x is private!
+
+// ============================================================
+// SECTION 3: WHEN TO USE struct vs class - CONVENTION
+// ============================================================
+
+// C++ gives you freedom, but community follows conventions:
+//
+// USE struct WHEN:
+// -> simple data container (POD - Plain Old Data)
+// -> all or most members are public
+// -> no complex logic, mostly just holds data
+// -> C interoperability needed
+// -> mathematical types: Vector3f, Point2D, Color, Rect
+//
+// struct Vector3f { float x, y, z; };       // perfect for struct
+// struct Point    { int x, y; };             // perfect for struct
+// struct Color    { uint8_t r, g, b, a; };  // perfect for struct
+//
+// USE class WHEN:
+// -> has private data (encapsulation needed)
+// -> has complex behavior / business logic
+// -> enforces invariants (validation in constructor etc.)
+// -> "is a thing" with identity and behavior
+//
+// class Student   { private: string m_name; public: ... }; // class
+// class Database  { private: Connection* conn; ... };       // class
+// class Array     { private: int* data; ... };              // class
+//
+// INTERVIEW ANSWER:
+// "I use struct for simple data aggregates where all members
+//  are public and there's minimal behavior.
+//  I use class when I need encapsulation, private data,
+//  and enforced invariants through constructors."
+
+// ============================================================
+// SECTION 4: C struct vs C++ struct
+// ============================================================
+
+// C struct (pure C):
+// struct Vector3f {
+//     float x, y, z;   // data only
+//     // NO methods allowed in C!
+//     // NO constructors in C!
+//     // NO access specifiers in C!
+// };
+// // must use: struct Vector3f myVec; (need 'struct' keyword in C)
+//
+// C++ struct (your code):
+// struct Vector3f {
+//     Vector3f();       // constructor - C++ feature!
+//     float x, y, z;
+// };
+// // can use: Vector3f myVec; (no 'struct' keyword needed in C++)
+//
+// YOUR Vector3f is a C++ struct (has constructor)
+// not compatible with pure C (constructor is C++ only)
+//
+// POD (Plain Old Data) = compatible with C:
+// struct Vector3f { float x, y, z; };  // no constructor = POD
+//                                        // safe to use in C code
+//                                        // safe to memcpy
+//                                        // safe to write to binary file
+
+// ============================================================
+// SECTION 5: CODE TRACE
+// ============================================================
+
+// struct Vector3f {
+//     Vector3f();         // declared
+//     float x, y, z;     // public by default
+// };
+//
+// Vector3f::Vector3f() : x(0.0f), y(0.0f), z(0.0f) { }
+// -> initializer list sets all to 0
+//
+// main():
+// Vector3f myVector1;    // constructor called: x=0, y=0, z=0
+// myVector1.x = 32;      // direct access (public!) x=32
+//
+// std::cout << myVector1 << std::endl;
+// -> operator<< called: 32,0,0
+// -> std::endl in operator<< adds newline
+// -> std::endl in main adds another newline
+//
+// OUTPUT:
+// 32,0,0
+//
+// (extra blank line from double std::endl)
+
+// ============================================================
+// SECTION 6: INTERVIEW QUESTIONS
+// ============================================================
+
+// Q1: What is the difference between struct and class in C++?
+//     -> Default access specifier ONLY.
+//        struct: public by default
+//        class:  private by default
+//        Everything else (methods, constructors, inheritance) identical.
+
+// Q2: Can a struct have constructors and methods in C++?
+//     -> YES. C++ struct is identical to class except default access.
+//        Can have constructors, destructors, methods, operator overloads.
+//        This differs from C where struct can only have data.
+
+// Q3: When would you use struct over class?
+//     -> For simple data aggregates (POD-like types) where all
+//        members are public and there's minimal behavior.
+//        Examples: Vector3f, Point2D, Color, Size, Rect.
+//        Use class when encapsulation and private data needed.
+
+// Q4: What is POD (Plain Old Data)?
+//     -> A type compatible with C: only data, no constructors,
+//        no virtual functions, no private members.
+//        Can be safely memcpy'd, written to binary files,
+//        used in C APIs.
+//        struct Vector3f { float x,y,z; }; <- POD
+//        struct Vector3f { Vector3f(); float x,y,z; }; <- NOT POD
+//                          ^constructor makes it non-POD
+
+// Q5: Do you need the 'struct' keyword when declaring variables in C++?
+//     -> NO. In C++: Vector3f myVec; (works)
+//        In C:       struct Vector3f myVec; (need 'struct' keyword)
+//        C++ removed this requirement for cleaner syntax.
+
+// Q6: Can a struct inherit from a class and vice versa?
+//     -> YES. In C++, struct and class are interchangeable for
+//        inheritance. Only default access differs.
+//        struct Derived : Base { };  // valid
+//        class Derived : Struct { }; // valid
+
+// Q7: myVector1.x = 32 works with struct but not class - why?
+//     -> struct: x is public by default -> direct access allowed
+//        class:  x is private by default -> compiler error
+//        Adding 'public:' to class makes them identical.
+
+// Q8: What is the sizeof a struct with x, y, z floats?
+//     -> sizeof(Vector3f) = 12 bytes (3 floats x 4 bytes each)
+//        No padding needed (all same type, naturally aligned)
+//        Adding char member might cause padding:
+//        struct { char c; float x; } -> 8 bytes (3 bytes padding after c)
+```
+
+**The ONLY difference - one line:**
+
+```cpp
+struct Foo { int x; };   // x is PUBLIC  by default
+class  Foo { int x; };   // x is PRIVATE by default
+```
+
+**Convention in real code:**
+
+```
+struct = "I am just data, look at me freely"   -> Vector3f, Point, Color
+class  = "I have secrets, go through my API"   -> Student, Database, Array
+```
+
+> In Qt and game engines you will see `struct` used **everywhere** for math types (`QPoint`, `QRect`, `QSize`) — exactly because they are simple public data containers with no encapsulation needed.
