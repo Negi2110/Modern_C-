@@ -1,0 +1,299 @@
+```cpp
+// ============================================================
+// RULE OF FIVE, MOVE SEMANTICS, std::vector REALLOCATION - INTERVIEW NOTES
+// ============================================================
+
+// ============================================================
+// SECTION 1: YOUR MAIN QUESTION - WHY && (double ampersand)?
+// ============================================================
+
+// Single & = LVALUE reference (binds to named variables)
+// int& ref = x;      // x is a named variable = lvalue
+
+// Double && = RVALUE reference (binds to temporaries)
+// int&& ref = 10;    // 10 is temporary = rvalue
+//
+// In function parameters:
+// IntArray(const IntArray& rhs)   // copy constructor - takes lvalue
+//                                  // "give me something that EXISTS"
+//
+// IntArray(IntArray&& source)     // move constructor - takes rvalue
+//                                  // "give me something TEMPORARY"
+//                                  // safe to STEAL from it
+//
+// && is NOT related to & address-of operator
+// && means: "this parameter must be an rvalue (temporary)"
+// std::move(x) converts lvalue x into rvalue -> enables move constructor
+
+// ============================================================
+// SECTION 2: RULE OF FIVE = RULE OF THREE + MOVE
+// ============================================================
+
+// RULE OF THREE (C++03):
+// 1. Destructor
+// 2. Copy Constructor
+// 3. Copy Assignment Operator
+//
+// RULE OF FIVE (C++11) adds:
+// 4. Move Constructor         IntArray(IntArray&& source)
+// 5. Move Assignment Operator IntArray& operator=(IntArray&& source)
+//
+// WHY add move versions?
+// COPY: allocates NEW memory, copies ALL data  = O(n) expensive
+// MOVE: STEALS pointer, sets source to nullptr = O(1) always!
+//
+// for IntArray with 10 ints:
+// copy = new allocation + 10 copies = work proportional to size
+// move = 2 pointer assignments      = same cost regardless of size
+
+// ============================================================
+// SECTION 3: MOVE CONSTRUCTOR EXPLAINED
+// ============================================================
+
+// IntArray::IntArray(IntArray&& source)
+// {
+//     m_name = source.m_name;      // steal name
+//     source.m_name = "";          // gut source (leave valid state)
+//     m_data = source.m_data;      // steal pointer (NO new allocation!)
+//     source.m_data = nullptr;     // gut source (prevent double free!)
+// }
+//
+// VISUAL - BEFORE move:
+// source: [m_name="temp"] [m_data -> heap[0..9]]
+// this:   [m_name=""]     [m_data -> nullptr]
+//
+// VISUAL - AFTER move:
+// source: [m_name=""]     [m_data -> nullptr]  <- gutted
+// this:   [m_name="temp"] [m_data -> heap[0..9]] <- stole everything
+//
+// KEY POINTS:
+// 1. NO new heap allocation (unlike copy constructor)
+// 2. source.m_data = nullptr -> when source destructs:
+//    delete[] nullptr = safe (does nothing)
+//    prevents double free!
+// 3. source left in VALID but empty state
+//    (can be safely destroyed, cannot be used for data)
+
+// ============================================================
+// SECTION 4: MOVE ASSIGNMENT OPERATOR
+// ============================================================
+
+// IntArray& IntArray::operator=(IntArray&& source)
+// {
+//     if (this != &source)          // self-assignment check
+//     {
+//         m_name = source.m_name;
+//         source.m_name = "";
+//         m_data = source.m_data;   // steal pointer
+//         source.m_data = nullptr;  // gut source
+//     }
+//     return *this;
+// }
+//
+// NOTICE: unlike copy assignment, NO delete[] m_data before stealing!
+// WAIT - is that a bug??
+//
+// Actually YES - this IS a bug in the code!
+// if THIS object already has heap data, it should free it first:
+//
+// CORRECT move assignment:
+// IntArray& operator=(IntArray&& source) {
+//     if (this != &source) {
+//         delete[] m_data;          // FREE existing data first!
+//         m_name = source.m_name;
+//         source.m_name = "";
+//         m_data = source.m_data;
+//         source.m_data = nullptr;
+//     }
+//     return *this;
+// }
+
+// ============================================================
+// SECTION 5: THE vector REALLOCATION PROBLEM
+// ============================================================
+
+// std::vector<IntArray> myArrays;
+//
+// WITHOUT reserve():
+// push_back element 1: capacity=1,  allocate 1 slot
+// push_back element 2: capacity=2,  allocate 2 slots, COPY/MOVE all
+// push_back element 3: capacity=4,  allocate 4 slots, COPY/MOVE all
+// push_back element 4: (fits in 4)
+// push_back element 5: capacity=8,  allocate 8 slots, COPY/MOVE all
+// push_back element 6-8: (fits)
+// push_back element 9: capacity=16, allocate 16 slots, COPY/MOVE all
+// push_back element 10: (fits)
+//
+// EVERY reallocation: ALL existing elements copied/moved to new memory
+// = many extra copy/move constructor calls
+// = many extra allocations (Valgrind shows 35 or 49!)
+//
+// WITH reserve(10):
+// myArrays.reserve(10);  // pre-allocate space for 10 elements
+// push_back 1-10: NO reallocation needed (space already there)
+// = only 10 allocations (one per element)
+// = Valgrind shows 13 (10 elements + some overhead)
+
+// ============================================================
+// SECTION 6: push_back(temp) vs push_back(std::move(temp))
+// ============================================================
+
+// WITHOUT std::move:
+// myArrays.push_back(temp);
+// -> temp is lvalue (named variable)
+// -> COPY constructor called
+// -> new heap allocation + copy all 10 ints
+// -> temp still exists after push_back (untouched)
+// -> Valgrind: 24 allocations (with reserve)
+//
+// WITH std::move:
+// myArrays.push_back(std::move(temp));
+// -> std::move casts temp to rvalue
+// -> MOVE constructor called
+// -> NO new heap allocation (pointer stolen from temp)
+// -> temp is gutted (m_data = nullptr)
+// -> but temp is about to be destroyed anyway (end of loop iteration)
+// -> Valgrind: 13 allocations (with reserve) - much fewer!
+//
+// LOOP VARIABLE temp:
+// for (int i = 0; i < 10; i++) {
+//     IntArray temp(std::to_string(i));  // born
+//     myArrays.push_back(std::move(temp)); // MOVED into vector
+// }   // temp destroyed here - but already gutted, delete[] nullptr = safe
+
+// ============================================================
+// SECTION 7: VALGRIND NUMBERS EXPLAINED
+// ============================================================
+
+// WITHOUT reserve, WITH push_back(temp) = copy:
+// 49 allocations:
+// -> 10 temp constructions  (10 allocs)
+// -> 10 copies into vector  (10 allocs)
+// -> vector reallocates 1,2,4,8,16 times (many extra copies)
+// -> extra copies during reallocation (many allocs)
+
+// WITH reserve, WITH push_back(temp) = copy:
+// 24 allocations:
+// -> 10 temp constructions  (10 allocs)
+// -> 10 copies into vector  (10 allocs)
+// -> NO reallocation (reserve prevented it)
+// -> 4 overhead allocations (std::string internals etc)
+
+// WITH reserve, WITH push_back(std::move(temp)) = move:
+// 13 allocations:
+// -> 10 temp constructions  (10 allocs) - m_data allocated
+// -> 10 MOVES into vector   (0 allocs!) - pointer stolen, no new alloc
+// -> 3 overhead allocations
+// -> BEST CASE!
+
+// WITHOUT reserve, WITH push_back(std::move(temp)) = move:
+// 35 allocations:
+// -> 10 constructions (10 allocs)
+// -> 10 moves (0 allocs for data, but vector reallocs cause moves)
+// -> vector reallocation moves (no extra data allocs but vector allocs)
+
+// ============================================================
+// SECTION 8: foo() FUNCTION - RETURN VALUE OPTIMIZATION
+// ============================================================
+
+// IntArray foo() {
+//     IntArray result("foo created array");
+//     return result;
+// }
+//
+// WITHOUT optimization: copy constructor called on return
+// WITH RVO (Return Value Optimization): compiler eliminates copy
+//   -> result constructed DIRECTLY in caller's memory
+//   -> zero copy/move on return
+//
+// IntArray x = foo();
+// -> RVO: result built directly as x (no copy!)
+// -> if RVO fails: move constructor used (result is rvalue)
+// -> copy constructor used as last resort
+//
+// PRIORITY: RVO > Move > Copy
+
+// ============================================================
+// SECTION 9: COMPLETE RULE OF FIVE SUMMARY
+// ============================================================
+
+// | Function           | Syntax                      | Does               |
+// |--------------------|-----------------------------|--------------------|
+// | Constructor        | IntArray(string)            | allocates heap     |
+// | Destructor         | ~IntArray()                 | frees heap         |
+// | Copy Constructor   | IntArray(const IntArray&)   | new alloc + copy   |
+// | Copy Assignment    | operator=(const IntArray&)  | free+new alloc+copy|
+// | Move Constructor   | IntArray(IntArray&&)        | steals pointer     |
+// | Move Assignment    | operator=(IntArray&&)       | steals pointer     |
+
+// ============================================================
+// SECTION 10: INTERVIEW QUESTIONS
+// ============================================================
+
+// Q1: What is && in IntArray(IntArray&& source)?
+//     -> Rvalue reference. Binds to temporaries (rvalues).
+//        Signals: "this object is temporary, safe to steal from."
+//        std::move converts lvalue to rvalue to enable move.
+
+// Q2: What is the Rule of Five?
+//     -> Rule of Three + move constructor + move assignment.
+//        For classes managing raw resources, write all five
+//        to handle both copying AND moving efficiently.
+
+// Q3: What is the difference between copy and move constructor?
+//     -> Copy: allocates NEW memory, copies data. O(n) cost.
+//        Move: steals pointer, sets source to nullptr. O(1) cost.
+
+// Q4: Why set source.m_data = nullptr after move?
+//     -> Prevents double free. Source will be destroyed eventually.
+//        ~IntArray calls delete[] m_data.
+//        delete[] nullptr = safe (does nothing).
+//        Without nullptr: both objects delete same memory = crash.
+
+// Q5: Why does reserve() reduce allocations?
+//     -> Pre-allocates capacity upfront.
+//        push_back doesn't trigger reallocation when capacity exists.
+//        Without reserve: vector doubles capacity on overflow,
+//        copying/moving ALL existing elements each time.
+
+// Q6: When does vector reallocation happen?
+//     -> When size() == capacity() and push_back is called.
+//        Vector allocates new larger block (typically 2x),
+//        moves all elements to new block, frees old block.
+//        reserve() prevents this by pre-allocating.
+
+// Q7: What is RVO (Return Value Optimization)?
+//     -> Compiler optimization eliminating copy/move on return.
+//        Constructs returned object directly in caller's memory.
+//        Priority: RVO > move > copy.
+//        C++17 guarantees RVO in most cases (NRVO).
+
+// Q8: push_back(temp) vs push_back(std::move(temp)) - when use which?
+//     -> push_back(temp): when you need temp after push_back.
+//                          copy made, temp unchanged.
+//        push_back(std::move(temp)): when done with temp.
+//                          move made (O(1)), temp gutted.
+//                          use when temp about to be destroyed anyway.
+```
+
+**The three push_back scenarios - Valgrind numbers:**
+
+```
+push_back(temp)  + no reserve  = 49 allocations  (copies + reallocations)
+push_back(temp)  + reserve(10) = 24 allocations  (copies, no reallocation)
+push_back(move)  + reserve(10) = 13 allocations  (moves steal pointers!)
+```
+
+**Move vs Copy in one picture:**
+
+```
+COPY:                           MOVE:
+source: [ptr -> heap data]      source: [ptr -> heap data]
+           |                                    |
+     deep copy (expensive)              STEAL pointer (free!)
+           |                                    |
+new:    [ptr -> NEW heap]       new:    [ptr -> same heap]
+                                source: [ptr -> nullptr]  <- gutted
+```
+
+> `&&` means **"I am temporary, rob me"**. The move constructor takes that invitation and steals the heap pointer in O(1) instead of copying all data in O(n). For large arrays in vectors, this is the difference between a fast program and a slow one.

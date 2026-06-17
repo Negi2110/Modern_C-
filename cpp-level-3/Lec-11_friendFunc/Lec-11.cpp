@@ -1,0 +1,1 @@
+//freind functions(and why you shoudl avoid them)
