@@ -1,0 +1,102 @@
+Great question — **private virtual functions are completely valid and actually a known C++ pattern.**
+
+```cpp
+class Base {
+private:
+    virtual void doWork()  // private AND virtual
+    {
+        std::cout << "Base::doWork\n";
+    }
+
+public:
+    void run()  // public non-virtual "wrapper"
+    {
+        doWork();  // calls virtual function from inside the class - OK!
+    }
+};
+
+class Derived : public Base {
+private:
+    void doWork() override  // can override even though Base's was private!
+    {
+        std::cout << "Derived::doWork\n";
+    }
+};
+
+int main() {
+    Base* p = new Derived();
+    p->run();        // OK - run() is public
+    // p->doWork();   // ERROR - doWork() is private, cannot call directly
+}
+```
+
+**Output:**
+```
+Derived::doWork
+```
+
+**Why this works - the key insight:**
+
+```
+Access control (public/private/protected)
+    ↓ answers: "WHO can CALL this function?"
+
+Virtual mechanism
+    ↓ answers: "WHICH version actually RUNS?"
+
+These are TWO SEPARATE, INDEPENDENT systems!
+```
+
+**Proof that override works on private virtual:**
+
+```cpp
+class Base {
+private:
+    virtual void doWork() { std::cout << "Base\n"; }
+};
+
+class Derived : public Base {
+public:                      // <- Derived can make IT public if it wants!
+    void doWork() override { std::cout << "Derived\n"; }
+    //   ^^^^^^^ override still works, even though Base's was private
+};
+```
+
+> Derived can even **change the access level** when overriding (private → public, or vice versa). The `override` only cares about **matching the signature**, not access level.
+
+**Why would anyone do this? The Non-Virtual Interface (NVI) pattern:**
+
+```cpp
+class Shape {
+public:
+    double getArea() const   // public, NON-virtual - the "interface"
+    {
+        return calculateArea();  // calls private virtual internally
+    }
+
+private:
+    virtual double calculateArea() const = 0;  // private virtual
+    // forces derived classes to implement calculateArea
+    // but PREVENTS them from being called directly from outside
+    // outside code MUST go through getArea()
+};
+```
+
+**Why this is useful:**
+
+```
+Public interface = STABLE, controlled entry point (getArea())
+Private virtual  = customizable behavior (calculateArea())
+
+Base class controls:
+- WHEN calculateArea() gets called
+- WHAT happens before/after it (logging, validation, caching)
+
+Derived class controls:
+- ONLY the actual calculation logic
+- CANNOT bypass the base class's control flow
+```
+
+**One line summary:**
+
+> Access specifiers (`public`/`private`/`protected`) control **who can call** a function. `virtual` controls **which version runs**. These are completely orthogonal — a function can be private AND virtual, and derived classes can still override it (and even change its access level), they just can't call it directly from outside without going through a public wrapper.
