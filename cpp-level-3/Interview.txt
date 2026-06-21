@@ -1,0 +1,288 @@
+```
+============================================================
+CLASSES BASICS - $300 Answer
+============================================================
+A copy constructor is a special member function that is called 
+when an instance of an object is created from another object 
+of the same type.
+
+Copy constructors:
+A copy constructor of class T is a non-template constructor whose 
+first parameter is T&, const T&, volatile T&, or const volatile T&, 
+and either there are no other parameters, or the rest of the 
+parameters all have default values.
+
+Syntax:
+class-name ( const class-name & )                          (1)
+class-name ( const class-name & ) = default;   (since C++11) (2)
+class-name ( const class-name & ) = delete;    (since C++11) (3)
+
+Reference: https://en.cppreference.com/w/cpp/language/copy_constructor
+
+
+============================================================
+CLASSES BASICS - $500 Answer
+============================================================
+A special member function that is called when an object is 
+initialized from an 'rvalue'. When creating a new object, this 
+effectively transfers ownership to the new object.
+
+Move constructors:
+A move constructor of class T is a non-template constructor whose 
+first parameter is T&&, const T&&, volatile T&&, or const volatile 
+T&&, and either there are no other parameters, or the rest of the 
+parameters all have default values.
+
+Syntax:
+class-name ( class-name && )                          (1) (since C++11)
+class-name ( class-name && ) = default;   (since C++11) (2)
+class-name ( class-name && ) = delete;    (since C++11) (3)
+
+Reference: https://en.cppreference.com/w/cpp/language/move_constructor
+
+
+============================================================
+CLASSES RULES - $100 Answer
+============================================================
+Rule of three
+If a class requires a user-defined destructor, a user-defined copy 
+constructor, or a user-defined copy assignment operator, it almost 
+certainly requires all three.
+
+1. Constructor
+2. Destructor
+3. Copy Constructor
+
+Reference: https://en.cppreference.com/w/cpp/language/rule_of_three
+
+
+============================================================
+CLASSES RULES - $200 Answer
+============================================================
+When performing a deep copy. Thus, anytime you have a member 
+variable that is not trivially copyable, you need to perform 
+the deep copy.
+
+Reference: https://youtu.be/EBgBM7rPDic?t=1860
+
+Code example:
+// Copy Constructor
+Array(const Array& rhs){
+    std::cout << "Copy Constructor" << std::endl;
+    data = new int[10];
+    for(int i=0; i < 10; i++){
+        data[i] = rhs.data[i];
+    }
+}
+// Copy Assignment operator
+// Object is already constructed, we are just 
+// making a copy later (e.g. myArray2 = myArray)
+Array& operator=(const Array& rhs){
+    std::cout << "Copy assignment operator" << std::endl;
+    if(&rhs == this){
+        return *this;
+    }
+    delete[] data;
+    data = new int[10];
+    for(int i=0; i < 10; i++){
+        data[i] = rhs.data[i];
+    }
+    return *this;
+}
+
+
+============================================================
+CLASSES RULES - $300 Answer
+============================================================
+Rule of five
+Because the presence of a user-defined (or = default or = delete 
+declared) destructor, copy-constructor, or copy-assignment operator 
+prevents implicit definition of the move constructor and the move 
+assignment operator, any class for which move semantics are 
+desirable, has to declare all five special member functions:
+
+constructor, destructor, copy-constructor (and copy-assignment 
+operator), move constructor, and move-assignment operator
+
+Reference: https://en.cppreference.com/w/cpp/language/rule_of_three
+
+
+============================================================
+CLASSES RULES - $400 Question
+============================================================
+When should you initialize an object with {} as opposed to ()?
+
+e.g.
+UDT type{1,2};
+UDT type(1,2);
+
+
+============================================================
+CLASSES RULES - $400 Answer
+============================================================
+UDT type{1,2};
+Useful to call the constructor and prevents narrowing. If a 
+constructor has an initializer list, this will initialize the 
+initializer list
+
+UDT type(1,2);
+Calls the constructor with two parameters, and does not 
+prevent narrowing.
+
+
+============================================================
+CLASSES RULES - $500 Answer
+============================================================
+1. const int pi = 3.14f;       // Local variable
+2. foo(const T& param);        // parameter
+3. member_func() const;        // read-only access of 
+                                   member variables
+
+C++ keywords: const
+Usage:
+- const type qualifier
+- const-qualified member functions
+
+Reference: https://en.cppreference.com/w/cpp/keyword/const
+
+
+============================================================
+STRUCTS - $100 Answer
+============================================================
+The default privacy level is public in a struct, and private 
+in a class
+
+class A {};
+struct B: /* public */ A {};
+
+struct A {};
+class B: /* private */ A {};
+
+(Bonus: This also holds for inheritance, that structs are 
+publicly inherited by default)
+
+Reference: https://stackoverflow.com/questions/4796789/default-inheritance-access-specifier
+
+
+============================================================
+STRUCTS - $200 Answer
+============================================================
+The .hpp file serves as an interface with the class declaration, 
+member function declarations, and member variables.
+The .cpp is the compiled file with the implementation. We 
+separate them out to 'hide code', 'improve compilation', and the 
+.hpp also serves as a high-level overview of our code.
+
+Reference: https://www.youtube.com/playlist?list=PLvv0ScY6vfd8j-tlhYVPYgilyXduu6m-L
+
+Related video: "Interface (.hpp) versus implementation (.cpp) 
+files (and why they exist) | Modern Cpp Series" - Mike Shah
+
+
+============================================================
+STRUCTS - $300 Answer
+============================================================
+Resource Acquisition is Initialization (RAII)
+
+References:
+- https://en.cppreference.com/w/cpp/language/raii
+- https://www.youtube.com/watch?v=T3etG2THif8&list=PLvv0ScY6vfd8j-tlhYVPYgilyXduu6m-L&index=45&t=1s
+
+RAII definition:
+Resource Acquisition Is Initialization or RAII, is a C++ 
+programming technique which binds the life cycle of a resource 
+that must be acquired before use (allocated heap memory, thread 
+of execution, open socket, open file, locked mutex, disk space, 
+database connection—anything that exists in limited supply) to 
+the lifetime of an object.
+
+
+============================================================
+STRUCTS - $400 Answer
+============================================================
+A 'plain old data type' or 'piece of data'.
+
+In C++ again, there is no distinction, but stylistically you 
+may encounter developers delineate between using classes and 
+using structs strictly as POD types.
+
+
+============================================================
+STRUCTS - $500 Answer
+============================================================
+Operator overloading allows you to define operators (e.g. 
++,-,<=,<<, new, delete) for functions and classes
+
+operator overloading:
+Customizes the C++ operators for operands of user-defined types.
+
+Overloaded operators are functions with special function names:
+operator op                                          (1)
+operator type                                         (2)
+operator new
+operator new []                                       (3)
+operator delete
+operator delete []                                    (4)
+operator "" suffix-identifier            (since C++11) (5)
+operator co_await                        (since C++20) (6)
+
+op - any of the following operators: 
++ - * / % ^ & | ~ ! = < > += -= *= /= %= ^= &= |= 
+<< >> >>= <<= == != <= >= <=> (since C++20) && || ++ -- , 
+->* -> ( ) [ ]
+
+
+============================================================
+CLASSES INHERITANCE - $100 Answer
+============================================================
+'is-a' for inheritance
+
+'has-a' for composition
+
+
+============================================================
+CLASSES INHERITANCE - $300 Answer
+============================================================
+Virtual is the C++ way of supporting dynamic dispatch. This is 
+necessary to ensure that the correct member function is called 
+from the instantiated object.
+
+Reference: https://en.cppreference.com/w/cpp/language/virtual
+
+virtual function specifier:
+The virtual specifier specifies that a non-static member function 
+is virtual and supports dynamic dispatch. It may only appear in 
+the decl-specifier-seq of the initial declaration of a non-static 
+member function (i.e., when it is declared in the class definition).
+
+
+============================================================
+CLASSES INHERITANCE - $400 Answer
+============================================================
+The vtable contains entries in a class for each virtual function 
+call. One vtable per class is created and shared by all instances 
+of classes
+
+Reference: https://www.youtube.com/watch?v=hS7kPtVB1vI&list=PLvv0ScY6vfd8j-tlhYVPYgilyXduu6m-L&index=55&t=1s
+
+[Diagram: Virtual table (vtable) - Supports dynamic dispatch
+Base class: Base(), ~Base(), MemberFunc, __vtbl* 
+   -> points to vtbl: Base, MemberFunc
+Derived class: Derived(), ~Derived(), MemberFunc, __vtbl*
+   -> points to vtbl: Derived, MemberFunc]
+
+
+============================================================
+CLASSES INHERITANCE - $500 Answer
+============================================================
+Virtual inheritance ensures that derived classes only contain 
+one of the base classes if it appears multiple times.
+
+Reference: https://en.cppreference.com/w/cpp/language/derived_class
+
+Virtual base classes:
+For each distinct base class that is specified virtual, the most 
+derived object contains only one base class subobject of that 
+type, even if the class appears many times in the inheritance 
+hierarchy (as long as it is inherited virtual every time).
+```

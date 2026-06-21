@@ -100,3 +100,143 @@ Derived class controls:
 **One line summary:**
 
 > Access specifiers (`public`/`private`/`protected`) control **who can call** a function. `virtual` controls **which version runs**. These are completely orthogonal — a function can be private AND virtual, and derived classes can still override it (and even change its access level), they just can't call it directly from outside without going through a public wrapper.
+
+
+Excellent question — let me pin down **exactly** who calls `Entity`'s constructor.
+
+```cpp
+struct Entity { int x{4}, y{5}; };
+struct Goblin : virtual public Entity { int power{7}; };
+struct Warrior : virtual public Entity { int power{10}; };
+struct Player : public Goblin, public Warrior { };
+```
+
+**The rule: the MOST-DERIVED class is ALWAYS responsible for constructing the virtual base — directly. Not through Goblin. Not through Warrior. Player does it itself.**
+
+```cpp
+Player mike;
+
+// what ACTUALLY happens at runtime:
+// 1. Player's constructor runs (even the compiler-generated default one)
+// 2. Player's constructor calls Entity() DIRECTLY
+//    (NOT through Goblin, NOT through Warrior)
+// 3. Goblin's constructor runs — but its "call to Entity()" is SKIPPED
+//    (compiler knows Player already handled it)
+// 4. Warrior's constructor runs — same thing, its "call to Entity()" SKIPPED
+// 5. Player's own body runs (empty here)
+```
+
+**Why this rule exists - the problem it solves:**
+
+```cpp
+// IF Goblin and Warrior were each allowed to construct Entity themselves:
+// Goblin would construct Entity once
+// Warrior would construct Entity AGAIN
+// -> TWO constructions for ONE shared object -> contradiction!
+
+// SO C++ says: "only the FINAL, most-derived class gets to
+//               construct virtual bases. Everyone else's attempt
+//               to construct it is SILENTLY IGNORED."
+```
+
+**Proof with explicit constructors:**
+
+```cpp
+struct Entity {
+    Entity(int x, int y) : x(x), y(y) {}
+    int x, y;
+};
+
+struct Goblin : virtual public Entity {
+    Goblin() : Entity(100, 100) { }   // Goblin TRIES to pass 100,100
+};
+
+struct Warrior : virtual public Entity {
+    Warrior() : Entity(200, 200) { }  // Warrior TRIES to pass 200,200
+};
+
+struct Player : public Goblin, public Warrior {
+    Player() : Entity(999, 999) { }   // Player explicitly constructs Entity
+    // Goblin's "Entity(100,100)" -> IGNORED
+    // Warrior's "Entity(200,200)" -> IGNORED
+    // ONLY Player's "Entity(999,999)" actually runs
+};
+
+Player mike;
+std::cout << mike.x;  // prints 999, NOT 100, NOT 200!
+```
+
+**If Player does NOT specify it explicitly (your actual code):**
+
+```cpp
+struct Player : public Goblin, public Warrior { };
+// Player has no custom constructor at all
+// compiler auto-generates: Player() : Entity() /* default */ { }
+// Entity's DEFAULT constructor runs (x{4}, y{5})
+// Goblin's and Warrior's attempts to construct Entity are both ignored
+```
+
+**This is exactly why your `mike.x == 4` regardless of `Goblin`/`Warrior` order — it was never Goblin or Warrior's call to make in the first place.**
+
+> **One sentence answer**: in virtual inheritance, the **most-derived class** is the **only** class that actually gets to construct the shared virtual base — every intermediate class's attempt to construct it is overridden and silently skipped, no matter what order they appear in the inheritance list.
+
+**Most-derived class** = the class at the **bottom** of the inheritance chain — the one you're actually creating an object of.
+
+```cpp
+struct Entity { };           // level 1 (top)
+struct Goblin : virtual Entity { };   // level 2
+struct Warrior : virtual Entity { };  // level 2
+struct Player : public Goblin, public Warrior { };  // level 3 (bottom)
+
+Player mike;
+//     ^^^^^^
+//     YOU are creating a Player object
+//     Player = "most-derived" HERE
+```
+
+**The term is relative to what you're actually instantiating:**
+
+```cpp
+Entity e;
+// Entity is the most-derived class HERE
+// (nothing inherits from anything, e IS just an Entity)
+
+Goblin g;
+// Goblin is the most-derived class HERE
+// (Goblin sits at the "bottom" of ITS OWN inheritance chain: Entity -> Goblin)
+
+Player mike;
+// Player is the most-derived class HERE
+// the chain is: Entity -> Goblin -> Player
+//                       -> Warrior -> Player
+// Player is at the very bottom, nothing inherits further from it
+```
+
+**Visual - "most-derived" is just "the actual type you wrote `new` or declared":**
+
+```
+Entity                    ← base (top, most general)
+   ↑
+Goblin, Warrior            ← middle (derived from Entity)
+   ↑
+Player                     ← MOST-DERIVED (bottom, most specific)
+                              this is the type of the OBJECT itself
+```
+
+**Why it matters for virtual inheritance specifically:**
+
+```cpp
+Goblin g;
+// here, Goblin IS the most-derived class
+// Goblin's own constructor IS responsible for constructing Entity directly
+// (because nothing is "below" Goblin in THIS particular object)
+
+Player mike;
+// here, Player IS the most-derived class
+// Player's constructor is responsible for constructing Entity
+// Goblin's "attempt" to construct Entity gets ignored,
+// because Goblin is NOT the most-derived class in THIS case
+// (Player is one level below Goblin)
+```
+
+> **One-line definition**: most-derived class = **the actual type of the object you're creating** — the very last link in its inheritance chain, the one sitting at the bottom with nothing built on top of it.
