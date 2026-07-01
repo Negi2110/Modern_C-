@@ -286,3 +286,129 @@ derived object contains only one base class subobject of that
 type, even if the class appears many times in the inheritance 
 hierarchy (as long as it is inherited virtual every time).
 ```
+
+
+
+
+```
+============================================================
+CLASSES MISC. - $100 Question
+============================================================
+Describe a strategy to prevent copies of objects from being made
+
+
+============================================================
+CLASSES MISC. - $100 Answer
+============================================================
+Delete the copy constructor or (if pre c++11) make the copy 
+constructor private.
+
+Related video: "Classes part 5 - Avoiding copies (Delete copy 
+constructor and pass by reference) | Modern Cpp Series" - Mike Shah
+https://www.youtube.com/watch?v=MGzV5_1lEM8&list=PLvv0ScY6vfd8j-tlhYVPYgilyXduu6m-L&index=42
+
+
+============================================================
+CLASSES MISC. - $200 Answer
+============================================================
+Constructors and member initializer lists
+
+Constructor is a special non-static member function of a class 
+that is used to initialize objects of its class type.
+
+In the definition of a constructor of a class, member initializer 
+list specifies the initializers for direct and virtual bases and 
+non-static data members. (Not to be confused with 
+std::initializer_list.)
+
+Using a member initializer list can avoid a copy, as we can 
+directly construct the member variable inside the object.
+
+Reference: https://en.cppreference.com/w/cpp/language/constructor
+
+
+============================================================
+CLASSES MISC. - $300 Answer
+============================================================
+Friend declaration
+
+The friend declaration appears in a class body and grants a 
+function or another class access to private and protected 
+members of the class where the friend declaration appears.
+
+Similar to a friend function, a friend class gets access to all 
+(including private) member variables of a class.
+
+Reference: https://en.cppreference.com/w/cpp/language/friend
+
+
+============================================================
+CLASSES MISC. - $400 Answer
+============================================================
+In general, we always make a base class virtual, to ensure that 
+the base classes destructor will be called.
+
+When we have a derived class that is going to use inheritance-based 
+polymorphism, adding 'virtual' ensures that the base classes 
+destructor is also called.
+
+Reference: https://www.youtube.com/watch?v=XvzgC5WoBCE&list=PLvv0ScY6vfd8j-tlhYVPYgilyXduu6m-L&index=53&t=1s
+
+Code example:
+class Derived : public Base {
+public:
+    Derived() {
+        std::cout << "Derived Constructor" << std::endl;
+        derivedData = new int[15];
+    }
+    ~Derived(){
+        std::cout << "Derived Destructor" << std::endl;
+        delete[] derivedData;
+    }
+    void MemberFunc() override {
+        std::cout << "Derived::MemberFunc()\n";
+    }
+    int* derivedData;
+};
+
+int main(){
+    Base* instance = new Derived;
+    instance->MemberFunc();
+    delete instance;
+    return 0;
+}
+
+
+============================================================
+CLASSES MISC. - $500 Answer
+============================================================
+We do not truly have 'abstract classes' in C++, but we can make 
+'pure virtual functions' that must be implemented from subclasses.
+
+Reference: https://www.youtube.com/watch?v=8USgOF7x0hM&list=PLvv0ScY6vfd8j-tlhYVPYgilyXduu6m-L&index=55
+
+Code example:
+class IRenderer{
+public:
+    // This, is a pure virtual function
+    virtual void Draw() = 0;
+    virtual void Update() = 0;
+};
+
+
+============================================================
+FINAL JEOPARDY QUESTION
+============================================================
+Why is 'this' not a reference?
+
+
+============================================================
+FINAL JEOPARDY ANSWER
+============================================================
+Because "this" was introduced into C++ (really into C with 
+Classes) before references were added. Also, I chose "this" to 
+follow Simula usage, rather than the (later) Smalltalk use of 
+"self".
+
+Reference: https://www.stroustrup.com/bs_faq2.html#this
+```
