@@ -1,0 +1,552 @@
+====================================================================
+C++ STL CONTAINERS - COMPLETE INTERVIEW NOTES
+====================================================================
+(Compiled from course slides - Sequence Containers, Container Adaptors,
+Associative Containers, Unordered Associative Containers + Cheat Sheet)
+
+
+====================================================================
+SECTION 1: SEQUENCE CONTAINERS
+====================================================================
+
+--------------------------------------------------------------------
+1.1 std::array  --  #include <array>
+--------------------------------------------------------------------
+Overview:
+  - Fixed-size container (number of elements must be known at
+    COMPILE-TIME, cannot resize)
+  - Contiguous block of memory
+  - STACK allocated (thus fast, but we cannot make HUGE allocations)
+  - Random Access in O(1)
+  - Fast linear traversal (very cache friendly)
+  - Reordering or resizing array has a cost of copying (potentially
+    expensive if elements are big)
+
+Template signature (since C++11):
+  template<
+      class T,
+      std::size_t N
+  > struct array;
+
+Time Complexity:
+  Operation     | Time Complexity
+  ------------- | ----------------
+  Insertion     | O(n)
+  Update        | O(1)
+  Delete        | O(n)
+
+YouTube Lesson:
+  https://www.youtube.com/watch?v=0lLfBI3dSRE&list=PLvv0ScY6vfd8j-tlhYVPYgilyXduu6m-L
+
+
+--------------------------------------------------------------------
+1.2 std::vector  --  #include <vector>
+--------------------------------------------------------------------
+Overview:
+  - 'Dynamic array' that will resize as needed
+  - Insertion at the end in O(1) time
+  - Contiguous block of memory that is HEAP allocated
+  - Heap allocated
+  - Random Access in O(1) (similar to std::array)
+  - Fast linear traversal (very cache friendly)
+  - Reordering or resizing has a cost of copying (potentially
+    expensive if elements are big)
+  - Potentially some cost versus array if we have to reallocate
+    frequently as we resize
+
+Time Complexity:
+  Operation     | Time Complexity
+  ------------- | ----------------
+  Insert Head   | O(n)
+  Insert Index  | O(n)
+  Insert Tail   | O(1)
+  Remove Head   | O(n)
+  Remove Index  | O(n)
+  Remove Tail   | O(1)
+  Find Index    | O(1)
+  Find Object   | O(n)
+
+YouTube Lesson:
+  https://www.youtube.com/watch?v=iM_rlWmq6cE&list=PLvv0ScY6vfd8j-tlhYVPYgilyXduu6m-L
+
+
+--------------------------------------------------------------------
+1.3 std::deque  --  #include <deque>
+--------------------------------------------------------------------
+Overview:
+  - Double Ended Queue (sometimes pronounced like 'deck')
+  - Random Access in O(1)
+  - This data structure in a way is almost a compromise between a
+    list and a vector
+      -> Can think of it as a LINKED LIST OF ARRAYS
+  - Heap allocated
+  - Generally fast linear traversal (very cache friendly)
+  - Insertion or deletion at beginning or end is generally fast
+  - Reordering or resizing has a cost of copying (potentially
+    expensive if elements are big)
+  - Potentially some cost versus array if we have to reallocate
+    frequently as we resize
+
+Time Complexity:
+  Operation     | Time Complexity
+  ------------- | ----------------
+  Insert Head   | O(1)
+  Insert Index  | O(n) or O(1)
+  Insert Tail   | O(1)
+  Remove Head   | O(1)
+  Remove Index  | O(n)
+  Remove Tail   | O(1)
+  Find Index    | O(1)
+  Find Object   | O(n)
+
+YouTube Lesson:
+  https://www.youtube.com/watch?v=g9wTzeq0Y-y&list=PLvv0ScY6vfd8j-tlhYVPYgilyXduu6m-L&t=3s
+
+
+--------------------------------------------------------------------
+1.4 std::forward_list  --  #include <forward_list>
+--------------------------------------------------------------------
+Overview:
+  - Singly linked list structure: f1 -> [1]->[2]->[3]->[4]->[5]->[6]->end
+  - More space efficient implementation of std::list
+      -> However, can only traverse FORWARD
+  - In practice, slower (though you need to measure) than a
+    std::vector
+  - Allows for insertion in beginning, middle, and end in O(1) time
+  - Usually more efficient to SORT
+      -> (pointers exchanged versus copying data in contiguous
+          structures)
+  - No random access -- need to iterate
+
+Time Complexity:
+  Operation     | Time Complexity
+  ------------- | ----------------
+  Insert Head   | O(1)
+  Insert Index  | O(n)
+  Insert Tail   | O(1)
+  Remove Head   | O(1)
+  Remove Index  | O(n)
+  Remove Tail   | O(1)
+  Find Index    | O(n)
+  Find Object   | O(n)
+
+YouTube Lesson:
+  https://www.youtube.com/watch?v=OCFccK6xYT0&list=PLvv0ScY6vfd8j-tlhYVPYgilyXduu6m-L
+
+
+--------------------------------------------------------------------
+1.5 std::list  --  #include <list>
+--------------------------------------------------------------------
+Overview:
+  - Doubly linked list structure: 1 <-> 2 <-> 3 <-> 4 <-> 5 <-> 6 -> end
+  - Same tradeoffs as forward_list essentially, but allows
+    BIDIRECTIONAL movement
+      -> (i.e. may be more convenient as you do not have to start
+          from the head each traversal -- you can backtrack)
+
+Time Complexity:
+  Operation     | Time Complexity
+  ------------- | ----------------
+  Insert Head   | O(1)
+  Insert Index  | O(n)
+  Insert Tail   | O(1)
+  Remove Head   | O(1)
+  Remove Index  | O(n)
+  Remove Tail   | O(1)
+  Find Index    | O(n)   (implied, same as forward_list)
+  Find Object   | O(n)   (implied, same as forward_list)
+
+YouTube Lesson:
+  https://www.youtube.com/watch?v=LuPqlBQNjWc&list=PLvv0ScY6vfd8j-tlhYVPYgilyXduu6m-L&index=119
+
+
+====================================================================
+SECTION 2: CONTAINER ADAPTORS
+====================================================================
+
+--------------------------------------------------------------------
+2.1 std::stack  --  #include <stack>
+--------------------------------------------------------------------
+Category: Sequence Container (Adaptor)
+
+Overview:
+  - Last in, first out (LIFO) data structure to enforce order
+  - The 'deque' is the DEFAULT container, but can also use
+    std::vector or std::list
+
+Template signature:
+  template<
+      class T,
+      class Container = std::deque<T>
+  > class stack;
+
+Time Complexity:
+  Operation | Time Complexity
+  --------- | ----------------------------------------------
+  Push      | Equal to the complexity of Container::push_back
+  Pop       | Equal to the complexity of Container::pop_back
+  Top       | O(1)
+
+YouTube Lesson:
+  https://www.youtube.com/watch?v=6vlIE8_S3RM&list=PLvv0ScY6vfd8j-tlhYVPYgilyXduu6m-L
+
+
+--------------------------------------------------------------------
+2.2 std::queue  --  #include <queue>
+--------------------------------------------------------------------
+Overview:
+  - First-in, First-out data structure (FIFO)
+  - Enqueue -> [Back .... Front] -> Dequeue
+  - 'deque' is the standard container, but can also use std::list
+
+Template signature:
+  template<
+      class T,
+      class Container = std::deque<T>
+  > class queue;
+
+Time Complexity:
+  Operation | Time Complexity
+  --------- | -----------------------------------------------
+  Push      | Equal to the complexity of Container::push_back
+  Pop       | Equal to the complexity of Container::pop_front
+  Front     | O(1)
+  Back      | O(1)
+
+YouTube Lesson:
+  https://www.youtube.com/watch?v=axDarbE1Hj4&list=PLvv0ScY6vfd8j-tlhYVPYgilyXduu6m-L&index=133
+
+
+--------------------------------------------------------------------
+2.3 std::priority_queue  --  #include <queue>
+--------------------------------------------------------------------
+Overview:
+  - Priority determines which element is first out
+  - Default implementation is a std::vector (can also use
+    std::deque)
+
+Template signature:
+  template<
+      class T,
+      class Container = std::vector<T>,
+      class Compare = std::less<typename Container::value_type>
+  > class priority_queue;
+
+Time Complexity:
+  Operation | Time Complexity
+  --------- | -----------------------------------------------------
+  Push      | Logarithmic number of comparisons plus the complexity
+            | of Container::push_back
+  Pop       | Logarithmic number of comparisons plus the complexity
+            | of Container::pop_back
+  Front     | O(1)
+  Top       | O(1)
+
+YouTube Lesson:
+  https://www.youtube.com/watch?v=dxHx7EYehAQ&list=PLvv0ScY6vfd8j-tlhYVPYgilyXduu6m-L&index=134
+
+
+====================================================================
+SECTION 3: ASSOCIATIVE CONTAINERS  (ordered, tree-based)
+====================================================================
+
+--------------------------------------------------------------------
+3.1 std::set  --  #include <set>
+--------------------------------------------------------------------
+Overview:
+  - Ordered
+  - Elements are unique
+  - Usually a linked data structure like a BALANCED BINARY TREE
+    (e.g. red-black tree) for implementation
+      -> This means 'logarithmic complexity'
+  - Useful for collecting elements
+
+Structure example: s -> [6] -> [4] & [9] -> [2],[5] & [7]  (BST shape)
+
+Time Complexity:
+  Operation | Time Complexity
+  --------- | ----------------
+  Insert    | O(log(n))
+  Remove    | O(log(n))
+  Find      | O(log(n))
+
+YouTube Lesson:
+  https://www.youtube.com/watch?v=DF0cb_cuE2w&list=PLvv0ScY6vfd8j-tlhYVPYgilyXduu6m-L&index=122
+
+
+--------------------------------------------------------------------
+3.2 std::multiset  --  #include <set>
+--------------------------------------------------------------------
+Overview:
+  - Same properties as set, but CAN have multiple of the same
+    elements
+
+Time Complexity (Same as set, consider duplicate keys may increase
+operation):
+  Operation | Time Complexity
+  --------- | ----------------
+  Insert    | O(log(n))
+  Remove    | O(log(n))
+  Find      | O(log(n))
+
+YouTube Lesson:
+  https://www.youtube.com/watch?v=EzZSUY7nc2c&list=PLvv0ScY6vfd8j-tlhYVPYgilyXduu6m-L&index=124&t=1s
+
+
+--------------------------------------------------------------------
+3.3 std::map  --  #include <map>
+--------------------------------------------------------------------
+Overview:
+  - Elements are stored as key-value pairs (i.e. std::pair)
+  - Ordered Elements
+  - Elements are unique (by key)
+  - Underlying elements are stored in a BALANCED TREE (e.g.
+    red-black tree)
+
+Structure example: m -> [6:d] -> [4:x],[9:c] -> [2:z],[5:s] & [7:a]
+
+Time Complexity:
+  std::map
+  Operation      | Time Complexity
+  -------------- | ----------------
+  Insert         | O(log(n))
+  Access by Key  | O(log(n))
+  Remove by Key  | O(log(n))
+  Find/Remove    | O(log(n))
+  Value          |
+
+YouTube Lesson:
+  https://www.youtube.com/watch?v=5cGp0vx5u9Q&list=PLvv0ScY6vfd8j-tlhYVPYgilyXduu6m-L&index=127
+
+
+--------------------------------------------------------------------
+3.4 std::multimap  --  #include <map>
+--------------------------------------------------------------------
+Overview:
+  - Same properties as map, but can have multiple of the same
+    elements (duplicate keys allowed)
+
+Time Complexity (Same as map, consider duplicate keys may increase
+operation):
+  std::map
+  Operation      | Time Complexity
+  -------------- | ----------------
+  Insert         | O(log(n))
+  Access by Key  | O(log(n))
+  Remove by Key  | O(log(n))
+  Find/Remove    | O(log(n))
+  Value          |
+
+YouTube Lesson:
+  https://www.youtube.com/watch?v=Fz2P6JNJy-c&list=PLvv0ScY6vfd8j-tlhYVPYgilyXduu6m-L&index=129
+
+
+====================================================================
+SECTION 4: UNORDERED ASSOCIATIVE CONTAINERS  (hash-based)
+====================================================================
+
+--------------------------------------------------------------------
+4.1 std::unordered_set  --  #include <unordered_set>
+--------------------------------------------------------------------
+Overview:
+  - Elements are NOT in order
+  - Elements are unique
+  - Faster average-case access due to the underlying data structure
+    being a hash set (i.e. hashtable implementation)
+
+Structure example (hashtable w/ buckets & chaining):
+  us -> h(6)->[6]
+        h(4)=h(2)->[4]->[2]
+        h(7)->[7]
+        h(9)=h(5)->[9]->[5]
+
+Time Complexity:
+  Operation | Time Complexity
+  --------- | ---------------------------------------------------
+  Insert    | Average case: O(1), worst case O(size())
+  Access    | Average case: constant, worst case: linear in size.
+  Remove    | Average case: constant, worst case linear in size
+            | of container
+  Find      | Constant on average, worst case linear in size of
+            | container
+
+YouTube Lesson:
+  https://www.youtube.com/watch?v=h1KLcfrDJNQ&list=PLvv0ScY6vfd8j-tlhYVPYgilyXduu6m-L&index=123
+
+
+--------------------------------------------------------------------
+4.2 std::unordered_map  --  #include <unordered_map>
+--------------------------------------------------------------------
+Overview:
+  - Elements are NOT in order
+  - Elements are unique (by key)
+  - Elements stored in key-value pair (like std::map)
+  - Faster average-case access due to the underlying data structure
+    being a hash set (i.e. hashtable implementation)
+
+Structure example (hashtable w/ buckets & chaining, key:value):
+  um -> h(6)->[6:d]
+        h(4)=h(2)->[4:x]->[2:z]
+        h(7)->[7:a]
+        h(9)=h(5)->[9:c]->[5:s]
+
+Time Complexity:
+  Operation | Time Complexity
+  --------- | ---------------------------------------------------
+  Insert    | Average case: O(1), worst case O(size())
+  Access    | Average case: constant, worst case: linear in size.
+  Remove    | Average case: constant, worst case linear in size
+            | of container
+  Find      | Constant on average, worst case linear in size of
+            | container
+
+YouTube Lesson:
+  https://www.youtube.com/watch?v=pvVrNwZzCgk&list=PLvv0ScY6vfd8j-tlhYVPYgilyXduu6m-L&index=130
+
+
+====================================================================
+SECTION 5: CHEAT SHEET - CHOOSING A CONTAINER
+====================================================================
+
+Notes:
+  - Some of this comes with experience
+  - Measuring the performance is often the key however!
+      -> (Good thing with STL: we can generally swap out structures
+          easily)
+
+Decision flow (from flowchart):
+
+  START
+    |
+    v
+  Is ORDER important?
+    |
+    +-- NO -------------------------------------------------+
+    |                                                        |
+    +-- YES                                                  |
+        |                                                    |
+        v                                                    v
+   What kind of order?                          Insert/erase in middle?
+    |         |            |                        |            |
+    v         v            v                       NO           YES
+  Last In   First In    Largest                     |            |
+  First Out First Out   Element                     v            v
+    |          |         First Out              Insert/erase   Need to
+    v          v            |                   at front?      merge
+  stack      queue          v                    |    |        collections?
+                       Sorted by key?            NO   YES        |    |
+                          |      |                |    |        NO   YES
+                         NO     YES                v    v         |    |
+                          |      |            Need to  list       v    v
+                          v      v             find nth        vector deque
+                     Allow      Allow          element?
+                     duplicates? duplicates?      |    |
+                       |    |      |    |        NO   YES
+                      NO   YES    NO   YES         |    |
+                       |    |      |    |          v    v
+                       v    v      v    v      Store key   deque
+                     set  multiset map  multi_map  separate
+                                              to value?
+                                                |    |
+                                               NO   YES
+                                                |    |
+                                                v    v
+                                              set   map
+      (Also feeds into: Size will vary widely? -> Yes/No -> vector/deque)
+
+  Terminal container choices from the sheet:
+    stack, queue, priority_queue, map, set, multi_set, list, vector, deque
+
+Reference:
+  https://www.cheat-sheets.org/saved-copy/... (cheat-sheets.org flowchart PDF)
+
+
+====================================================================
+QUICK-REFERENCE SUMMARY TABLE (for rapid interview recall)
+====================================================================
+
+Container        | Order? | Duplicates? | Underlying Structure     | Insert     | Find/Access | Notes
+----------------- | ------ | ----------- | ------------------------- | ---------- | ------------ | -----------------------------
+array             | Yes(pos)| N/A        | Fixed contiguous (stack)  | O(n)       | O(1)         | Compile-time fixed size
+vector             | Yes(pos)| N/A        | Dynamic contiguous (heap) | O(1) tail  | O(1)         | Amortized O(1) push_back
+deque              | Yes(pos)| N/A        | Linked list of arrays     | O(1) ends  | O(1)         | Random access, fast at both ends
+forward_list       | Yes(pos)| N/A        | Singly linked list        | O(1)       | O(n)         | Forward traversal only, space efficient
+list               | Yes(pos)| N/A        | Doubly linked list        | O(1)       | O(n)         | Bidirectional traversal
+stack (adaptor)    | LIFO   | N/A         | deque (default)           | =push_back | Top O(1)     | Can swap underlying container
+queue (adaptor)    | FIFO   | N/A         | deque (default)           | =push_back | Front/Back O(1)| Can swap underlying container
+priority_queue     | Priority| N/A        | vector (default)          | O(log n)   | Top O(1)     | Heap-based
+set                | Sorted | No          | Balanced tree (red-black) | O(log n)   | O(log n)     | Unique keys
+multiset           | Sorted | Yes         | Balanced tree (red-black) | O(log n)   | O(log n)     | Duplicate keys allowed
+map                | Sorted | No (by key) | Balanced tree (red-black) | O(log n)   | O(log n)     | Key-value pairs, unique keys
+multimap           | Sorted | Yes (key)   | Balanced tree (red-black) | O(log n)   | O(log n)     | Key-value pairs, duplicate keys allowed
+unordered_set      | No     | No          | Hashtable                 | O(1) avg   | O(1) avg     | Worst case O(n) (collisions)
+unordered_map      | No     | No (by key) | Hashtable                 | O(1) avg   | O(1) avg     | Key-value pairs, worst case O(n)
+
+
+====================================================================
+KEY INTERVIEW TALKING POINTS
+====================================================================
+
+1. array vs vector:
+   - array: compile-time fixed size, stack allocated, no resize cost.
+   - vector: runtime resizable, heap allocated, amortized O(1)
+     push_back due to geometric growth (capacity doubling).
+
+2. vector vs deque:
+   - vector: single contiguous block; insert/remove at front is O(n).
+   - deque: chunked/segmented memory ("linked list of arrays");
+     O(1) insert/remove at BOTH ends; slightly less cache-friendly
+     than vector due to non-contiguous chunks.
+
+3. list vs forward_list:
+   - list: doubly linked, bidirectional, more memory overhead
+     (2 pointers/node).
+   - forward_list: singly linked, forward-only, more space efficient
+     (1 pointer/node), intended for very memory-constrained scenarios.
+
+4. Why linked lists (list/forward_list) are "usually more efficient
+   to sort": sorting swaps POINTERS, not the underlying data, so
+   large/expensive-to-copy objects benefit vs. contiguous containers
+   where sorting swaps actual data.
+
+5. stack/queue/priority_queue are CONTAINER ADAPTORS, not true
+   containers -- they wrap an underlying container (default deque,
+   deque, vector respectively) and restrict the interface. This is
+   why their complexity is described in terms of the underlying
+   container's operations (e.g. "equal to Container::push_back").
+
+6. set/map vs unordered_set/unordered_map:
+   - set/map: red-black tree -> O(log n) guaranteed, elements stay
+     SORTED, in-order traversal possible.
+   - unordered_set/unordered_map: hashtable -> O(1) average but
+     O(n) WORST CASE (hash collisions / all elements in one bucket),
+     no ordering guarantee.
+   - Pick tree-based when you need sorted iteration or worst-case
+     guarantees; pick hash-based when average speed matters more
+     than ordering.
+
+7. multiset/multimap: identical interface/complexity to set/map,
+   but allow duplicate keys -- useful when you need to store multiple
+   values that compare equal (e.g. multiple events at same
+   timestamp).
+
+8. Choosing a container (cheat sheet logic):
+   - Need strict LIFO/FIFO/priority ordering with push/pop
+     semantics -> stack / queue / priority_queue.
+   - Need random access + fast insert/remove at ends -> deque.
+   - Need fast insert/remove ONLY at end, cache-friendly iteration
+     -> vector.
+   - Need frequent insert/erase in the MIDDLE and don't need random
+     access -> list (or forward_list if only forward traversal
+     needed and memory is tight).
+   - Need key-based lookup, sorted -> map/set (or multimap/multiset
+     if duplicates allowed).
+   - Need key-based lookup, don't care about order, want fastest
+     average lookup -> unordered_map/unordered_set.
+   - ALWAYS measure/profile -- theoretical complexity doesn't
+     always reflect real-world cache behavior; STL makes it easy to
+     swap containers since they share similar interfaces.
+
+====================================================================
+END OF NOTES
+====================================================================
